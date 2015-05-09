@@ -6,24 +6,30 @@ import "time"
 import "net/http"
 import "strconv"
 import "os/exec"
+import "html/template"
 
 const screens int = 10
 
 var pageTable = map[string]int{
-    "/active":     0, "/0": 0,
-    "/main":       1, "/1": 1,
-    "/name":       2, "/2": 2,
-    "/started":    3, "/3": 3,
-    "/stopped":    4, "/4": 4,
-    "/complete":   5, "/5": 5,
-    "/incomplete": 6, "/6": 6,
-    "/hashing":    7, "/7": 7,
-    "/seeding":    8, "/8": 8,
-    "/leeching":   9, "/9": 9,
+	"/active": 0, "/0": 0,
+	"/main": 1, "/1": 1,
+	"/name": 2, "/2": 2,
+	"/started": 3, "/3": 3,
+	"/stopped": 4, "/4": 4,
+	"/complete": 5, "/5": 5,
+	"/incomplete": 6, "/6": 6,
+	"/hashing": 7, "/7": 7,
+	"/seeding": 8, "/8": 8,
+	"/leeching": 9, "/9": 9,
 }
 
 type CapturePane struct {
 	snap [screens][]byte
+}
+
+type Page struct {
+	Title string
+	Body  []byte
 }
 
 var pane CapturePane
@@ -54,8 +60,15 @@ func update() {
 }
 
 func handleRequest(w http.ResponseWriter, req *http.Request) {
+	title := req.URL.Path[1:]
+
 	index := pageTable[req.URL.Path]
-	w.Write(pane.snap[index])
+	p := &Page{Title: title, Body: pane.snap[index]}
+	t, _ := template.ParseFiles("template.html")
+	err := t.Execute(w, p)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func main() {
@@ -64,11 +77,11 @@ func main() {
 	go func() {
 		for {
 			select {
-				case <- ticker.C:
-					update()
-				case <- quit:
-					ticker.Stop()
-					return
+			case <-ticker.C:
+				update()
+			case <-quit:
+				ticker.Stop()
+				return
 			}
 		}
 	}()
