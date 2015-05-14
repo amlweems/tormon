@@ -30,9 +30,12 @@ type CapturePane struct {
 type Page struct {
 	Title string
 	Body  []byte
+	Prev  int
+	Next  int
 }
 
 var pane CapturePane
+var ticker *time.Ticker
 
 func snapshot(screen int) []byte {
 	move := exec.Command("tmux", "send-keys", "-t", "rtorrent", strconv.Itoa(screen))
@@ -63,7 +66,12 @@ func handleRequest(w http.ResponseWriter, req *http.Request) {
 	title := req.URL.Path[1:]
 
 	index := pageTable[req.URL.Path]
-	p := &Page{Title: title, Body: pane.snap[index]}
+	p := &Page{
+		Title: title,
+		Body:  pane.snap[index],
+		Prev:  (index - 1 + screens) % screens,
+		Next:  (index + 1) % screens,
+	}
 	t, _ := template.ParseFiles("template.html")
 	err := t.Execute(w, p)
 	if err != nil {
@@ -71,21 +79,29 @@ func handleRequest(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func handleTicker(w http.ResponseWriter, req *http.Request) {
+	path := req.URL.Path[len("/ticker/"):]
+	rate, err := strconv.Atoi(path)
+	if err != nil || rate < 0 || rate > 300 {
+		rate = 5
+	}
+	ticker = time.NewTicker(time.Duration(rate) * time.Second)
+
+	fmt.Fprintf(w, "Set refresh rate to %d seconds.", rate)
+}
+
 func main() {
-	ticker := time.NewTicker(5 * time.Second)
-	quit := make(chan struct{})
+	ticker = time.NewTicker(5 * time.Second)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
 				update()
-			case <-quit:
-				ticker.Stop()
-				return
 			}
 		}
 	}()
 
 	http.HandleFunc("/", handleRequest)
+	http.HandleFunc("/ticker/", handleTicker)
 	log.Fatal(http.ListenAndServe(":4002", nil))
 }
