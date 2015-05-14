@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>rtorrent monitor - {{.Title}}</title>
+	<script>
+		document.onkeydown = function (e) {
+			switch (e.which) {
+			case 37:
+				window.location.href = "/{{.Prev}}";
+				e.preventDefault();
+				break;
+			case 39:
+				window.location.href = "/{{.Next}}";
+				e.preventDefault();
+				break;
+			default:
+				return;
+			}
+		}
+	</script>
+</head>
+<body>
+	<a href="/active">active</a>
+	<a href="/main">main</a>
+	<a href="/name">name</a>
+	<a href="/started">started</a>
+	<a href="/stopped">stopped</a>
+	<a href="/complete">complete</a>
+	<a href="/incomplete">incomplete</a>
+	<a href="/hashing">hashing</a>
+	<a href="/seeding">seeding</a>
+	<a href="/leeching">leeching</a>
+	<br/>
+	<pre>
+{{printf "%s" .Body}}
+	</pre>
+</body>
+</html>
