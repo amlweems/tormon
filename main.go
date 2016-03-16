@@ -11,10 +11,12 @@ import "html/template"
 import "io/ioutil"
 
 type Page struct {
-	Title string
-	Body  []byte
+	Title   string
+	Refresh int
+	Body    []byte
 }
 
+var rate = 5
 var pane []byte
 var ticker *time.Ticker
 
@@ -47,8 +49,9 @@ func handleRequest(w http.ResponseWriter, req *http.Request) {
 	title := req.URL.Path[1:]
 
 	p := &Page{
-		Title: title,
-		Body:  pane,
+		Title:   title,
+		Refresh: rate,
+		Body:    pane,
 	}
 	t, _ := template.ParseFiles("template.html")
 	err := t.Execute(w, p)
@@ -69,7 +72,8 @@ func handleTicker(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	ticker = time.NewTicker(5 * time.Second)
+	ticker = time.NewTicker(time.Duration(rate) * time.Second)
+	update()
 	go func() {
 		for {
 			select {
